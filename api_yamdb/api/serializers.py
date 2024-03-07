@@ -8,7 +8,7 @@ from reviews.models import Title, Category, Genre, Review, Comment
 User = get_user_model()
 
 
-class GetTokenSrializer(serializers.ModelSerializer):
+class GetTokenSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True
     )
@@ -28,7 +28,7 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'username')
+        fields = ('username', 'email')
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,13 +45,6 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role',
         )
-
-    def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" запрещено!'
-            )
-        return value
 
 
 class TitleSerializer(serializers.ModelSerializer):

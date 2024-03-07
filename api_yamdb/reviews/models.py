@@ -12,10 +12,26 @@ ROLE_CHOICES = (
 
 
 class User(AbstractUser):
-    username_validator = (validate_username,)
+    username = models.CharField(
+        validators=(validate_username,),
+        max_length=150,
+        unique=True,
+        blank=False,
+        null=False
+    )
     email = models.EmailField(
         max_length=254,
-        unique=True
+        unique=True,
+        blank=False,
+        null=False
+    )
+    first_name = models.CharField(
+        max_length=150,
+        blank=True
+    )
+    last_name = models.CharField(
+        max_length=150,
+        blank=True
     )
     bio = models.TextField(
         'биография',

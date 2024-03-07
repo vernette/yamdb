@@ -12,7 +12,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from reviews.models import Title, Category, Genre, Review, User
 from .serializers import (
     TitleSerializer, CategorySerializer, GenreSerializer, ReviewSerializer,
-    CommentSerializer, UserSerializer, GetTokenSrializer, SignUpSerializer
+    CommentSerializer, UserSerializer, GetTokenSerializer, SignUpSerializer
 )
 from .permissions import (
     AdminOrUserOrReadOnly,
@@ -30,52 +30,64 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def signup(self, request):
-        serializer = SignUpSerializer(data=request.data)
+        user = User.objects.filter(
+            username=request.data.get('username'),
+            email=request.data.get('email')
+        ).first()
+
+        if user:
+            serializer = SignUpSerializer(user, data=request.data)
+        else:
+            serializer = SignUpSerializer(data=request.data)
+
         if serializer.is_valid():
-            serializer.validated_data[
-                'confirmation_code'] = self.get_new_confirmation_code()
+            serializer.validated_data['confirmation_code'] = \
+                self.get_new_confirmation_code()
             user = serializer.save()
             self.send_confirmation_code(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['POST'],
             detail=False,
             permission_classes=[AllowAny])
     def token(self, request):
-        serializer = GetTokenSrializer(data=request.data)
+        serializer = GetTokenSerializer(data=request.data)
         if serializer.is_valid():
-            if request.data.get('confirmation_code') == \
-                    serializer.validated_data['confirmation_code']:
-                token = RefreshToken.for_user(request.user).access_token
-                return Response({'token': str(token)},
-                                status=status.HTTP_201_CREATED)
-            else:
+            username = serializer.data['username']
+            user = get_object_or_404(User, username=username)
+            conf_code = user.confirmation_code
+
+            if conf_code != serializer.data['confirmation_code']:
                 return Response(
                     'Неверный код подтверждения!',
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            else:
+                token = RefreshToken.for_user(user)
+                return Response(
+                    {'token': str(token)},
+                    status=status.HTTP_201_CREATED
+                )
 
-    @action(methods=['POST'],
-            detail=False,
-            permission_classes=[AllowAny])
-    def code(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.data['username']
-            email = serializer.data['email']
-            user = get_object_or_404(User, username=username, email=email)
-            self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @staticmethod
     def send_confirmation_code(user):
         subject = 'Код подтверждения'
-        message = f'Ваш код для авторизации на YAMDB \
-        - {user.confirmation_code}'
+        message = (
+            f'Добрый день, {user.username}! \n'
+            f'Ваш код подтверждения '
+            f'для получения токена на YAMDB: \n'
+            f'{user.confirmation_code}'
+        )
         user_email = user.email
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [user_email])
+        send_mail(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,
+            [user_email])
 
     @staticmethod
     def get_new_confirmation_code():
