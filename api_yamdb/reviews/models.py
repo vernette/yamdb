@@ -1,9 +1,70 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 
 from .constants import TEXT_LENGTH_LIMIT
+from .validators import validate_username
 
-User = get_user_model()
+ROLE_CHOICES = (
+    ('admin', 'Админ'),
+    ('moderator', 'Модератор'),
+    ('user', 'Пользователь')
+)
+
+
+class User(AbstractUser):
+    username = models.CharField(
+        validators=(validate_username,),
+        max_length=150,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    first_name = models.CharField(
+        max_length=150,
+        blank=True
+    )
+    last_name = models.CharField(
+        max_length=150,
+        blank=True
+    )
+    bio = models.TextField(
+        'биография',
+        blank=True
+    )
+    role = models.CharField(
+        'роль',
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='user'
+    )
+    confirmation_code = models.CharField(
+        'код подтверждения',
+        max_length=255,
+        null=True,
+        blank=False
+    )
+
+    @property
+    def is_moderator(self):
+        return self.role == 'moderator'
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_user(self):
+        return self.role == 'user'
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
 
 class Category(models.Model):
@@ -68,6 +129,7 @@ class Review(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
+        related_name='reviews'
     )
     score = models.IntegerField(
         verbose_name='Рейтинг',
@@ -99,6 +161,7 @@ class Comment(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
+        related_name='comments'
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата добавления',
