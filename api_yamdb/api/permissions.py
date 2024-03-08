@@ -3,10 +3,13 @@ from rest_framework import permissions
 
 class AdminOnlyPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        return (
-            request.user.is_admin
-            or request.user.is_staff
-        )
+        if request.user.is_anonymous:
+            return False
+        else:
+            return (
+                request.user.is_admin
+                or request.user.is_staff
+            )
 
     def has_object_permission(self, request, view, obj):
         return (
