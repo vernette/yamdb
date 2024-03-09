@@ -6,11 +6,11 @@ import re
 def validate_username(value):
     if value == 'me':
         raise ValidationError(
-            ('Имя пользователя "me" запрещено!'),
-            params={'value': value}
+            'Имя пользователя "me" запрещено!'
         )
-    if re.search(r'^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$', value) is None:
+    elif re.search(r'^[\w.@+-]+\Z', value) is None:
         raise ValidationError(
-            (f'Cимволы <{value}> - запрещены для использования в нике!'),
-            params={'value': value},
+            f'Cимволы <{value}> - запрещены для использования в нике!'
         )
+    else:
+        return value

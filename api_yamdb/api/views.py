@@ -5,7 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.filters import SearchFilter
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import LimitOffsetPagination
 
@@ -15,11 +16,58 @@ from .serializers import (
     CommentSerializer, UserSerializer, GetTokenSerializer, SignUpSerializer
 )
 from .permissions import (
+    AdminOnlyPermission,
     AdminOrUserOrReadOnly,
     AdminOrModeratorOrAuthorPermission
 )
 
 import api_yamdb.settings as settings
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (AdminOnlyPermission,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('username',)
+    lookup_field = 'username'
+
+    @action(
+        methods=('GET', 'PATCH', 'DELETE'),
+        detail=False,
+        url_path=r'(?P<username>[\w.@+-]+)',
+    )
+    def username(self, request, username):
+        user = get_object_or_404(User, username=username)
+        if request.method == 'PATCH':
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            user.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        methods=('GET', 'PATCH',),
+        detail=False,
+        url_path='me',
+        permission_classes=(IsAuthenticated,)
+    )
+    def me(self, request):
+        instance = self.request.user
+        serializer = self.get_serializer(instance)
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=instance.role)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AuthViewSet(viewsets.ModelViewSet):
