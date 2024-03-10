@@ -91,15 +91,35 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(
+        validators=[UniqueValidator(queryset=Category.objects.all())]
+    )
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('id', 'name', 'slug')
+
+    def create(self, validated_data):
+        slug = validated_data.get('slug')
+        if Category.objects.filter(slug=slug).exists():
+            raise serializers.ValidationError("Категория с таким slug уже существует.")
+        return super().create(validated_data)
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(
+        validators=(UniqueValidator(queryset=Genre.objects.all()),),
+    )
+
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('id', 'name', 'slug')
+
+    def create(self, validated_data):
+        slug = validated_data.get('slug')
+        if Genre.objects.filter(slug=slug).exists():
+            raise serializers.ValidationError("Жанр с таким slug уже существует.")
+        return super().create(validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
