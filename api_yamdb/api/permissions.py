@@ -1,30 +1,58 @@
 from rest_framework import permissions
 
 
-class AdminOnlyPermission(permissions.BasePermission):
+class AdminPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_anonymous:
+            return False
+        return request.user.is_admin
+
+
+class ModeratorPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.is_anonymous:
             return False
         else:
-            return (
-                request.user.is_admin
-                or request.user.is_staff
-            )
+            if request.method in permissions.SAFE_METHODS:
+                return True
+            return request.user.is_moderator
+
+
+class UserPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        else:
+            if request.user.is_anonymous:
+                return False
 
     def has_object_permission(self, request, view, obj):
-        return (
-            request.user.is_admin
-            or request.user.is_staff
-        )
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        else:
+            if request.user.is_anonymous:
+                return False
+            else:
+                return obj.author == request.user
 
 
 class AdminOrUserOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return (
-            request.user.is_admin
-            or request.user.is_authenticated)
+        elif (request.user.is_authenticated and
+              request.user.is_admin):
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        elif (request.user.is_authenticated and
+              (request.user.is_admin
+               or request.user == obj.author)):
+            return True
+        return False
 
 
 class AdminOrModeratorOrAuthorPermission(permissions.BasePermission):

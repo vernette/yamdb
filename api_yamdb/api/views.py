@@ -1,13 +1,13 @@
 import random
+
 from django.core.mail import send_mail
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.filters import SearchFilter
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
 
 from reviews.models import Title, Category, Genre, Review, User
@@ -16,9 +16,9 @@ from .serializers import (
     CommentSerializer, UserSerializer, GetTokenSerializer, SignUpSerializer
 )
 from .permissions import (
-    AdminOnlyPermission,
-    AdminOrUserOrReadOnly,
-    AdminOrModeratorOrAuthorPermission
+    AdminPermission,
+    UserPermission,
+    ModeratorPermission,
 )
 
 import api_yamdb.settings as settings
@@ -27,7 +27,7 @@ import api_yamdb.settings as settings
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (AdminOnlyPermission,)
+    permission_classes = (AdminPermission,)
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
@@ -113,7 +113,7 @@ class AuthViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             else:
-                token = RefreshToken.for_user(user)
+                token = AccessToken.for_user(user)
                 return Response(
                     {'token': str(token)},
                     status=status.HTTP_201_CREATED
@@ -148,25 +148,26 @@ class AuthViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    permission_classes = (AdminOrUserOrReadOnly,)
+    permission_classes = [UserPermission | AdminPermission]
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (AdminOrUserOrReadOnly,)
+    permission_classes = [UserPermission | AdminPermission]
 
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (AdminOrUserOrReadOnly,)
+    permission_classes = [UserPermission | AdminPermission]
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = (AdminOrModeratorOrAuthorPermission,)
+    permission_classes = [
+        AdminPermission | UserPermission | ModeratorPermission]
 
     def get_title_id(self):
         return self.kwargs.get('title_id')
@@ -181,15 +182,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = self.get_title()
-        User = get_user_model()  # Это заглушка до введения системы токенов
-        test_user = User.objects.get(username='test')
-        serializer.save(author=test_user, title=title)
+        user = self.request.user
+        serializer.save(author=user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = (AdminOrModeratorOrAuthorPermission,)
+    permission_classes = [AdminPermission |
+                          ModeratorPermission | UserPermission]
 
     def get_review_id(self):
         return self.kwargs.get('review_id')
@@ -204,6 +205,5 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = self.get_review()
-        User = get_user_model()  # Это заглушка до введения системы токенов
-        test_user = User.objects.get(username='test')
-        serializer.save(author=test_user, review=review)
+        user = self.request.user
+        serializer.save(author=user, review=review)
