@@ -105,7 +105,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug')
+        fields = ('name', 'slug')
 
     def create(self, validated_data):
         slug = validated_data.get('slug')

@@ -157,6 +157,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [UserReadOnlyPermission | AdminPermission]
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'name'
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
