@@ -113,8 +113,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
-        queryset=User.objects.all(),
-        required=False  # Это временная версия до введения системы токенов
+        queryset=User.objects.all()
     )
 
     class Meta:
@@ -126,8 +125,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
-        queryset=User.objects.all(),
-        required=False  # Это заглушка до введения системы токенов
+        queryset=User.objects.all()
     )
 
     class Meta:
