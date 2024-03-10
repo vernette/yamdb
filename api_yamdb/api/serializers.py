@@ -8,7 +8,6 @@ from rest_framework.validators import UniqueValidator
 
 from reviews.models import Title, Category, Genre, Review, Comment
 
-
 User = get_user_model()
 
 
@@ -50,7 +49,6 @@ class UserSerializer(serializers.ModelSerializer):
         )
         read_only_field = ('role',)
 
-
     def validate_username(self, value):
         if value == 'me':
             raise ValidationError(
@@ -79,6 +77,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 class TitleSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
+    category = serializers.SlugRelatedField(slug_field='slug', queryset=Category.objects.all())
+    genre = serializers.SlugRelatedField(slug_field='slug', queryset=Genre.objects.all(), many=True)
 
     class Meta:
         model = Title
@@ -91,20 +91,12 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    slug = serializers.SlugField(
-        validators=(UniqueValidator(queryset=Category.objects.all()),),
-    )
-
     class Meta:
         model = Category
         fields = '__all__'
 
 
 class GenreSerializer(serializers.ModelSerializer):
-    slug = serializers.SlugField(
-        validators=(UniqueValidator(queryset=Genre.objects.all()),),
-    )
-
     class Meta:
         model = Genre
         fields = '__all__'
