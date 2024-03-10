@@ -24,7 +24,7 @@ class UserPermission(permissions.BasePermission):
             return True
         elif request.user.is_anonymous:
             return False
-        elif request.user.is_authenticated or request.method != 'POST':
+        elif request.user.is_authenticated:
             return True
 
     def has_object_permission(self, request, view, obj):
@@ -37,36 +37,10 @@ class UserPermission(permissions.BasePermission):
         return True
 
 
-class AdminOrUserOrReadOnly(permissions.BasePermission):
+class UserReadOnlyPermission(UserPermission):
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        elif (request.user.is_authenticated and
-              request.user.is_admin):
-            return True
-        return False
+        permission = super().has_permission(request, view)
 
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        elif (request.user.is_authenticated and
-              (request.user.is_admin
-               or request.user == obj.author)):
-            return True
-        return False
-
-
-class AdminOrModeratorOrAuthorPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.method in permissions.SAFE_METHODS
-            or request.user.is_authenticated
-        )
-
-    def has_object_permission(self, request, view, obj):
-        return (
-            request.method in permissions.SAFE_METHODS
-            or obj.author == request.user
-            or request.user.is_moderator
-            or request.user.is_admin
-        )
+        if permission and request.method in ('POST', 'PATCH', 'DELETE'):
+            return False
+        return permission
