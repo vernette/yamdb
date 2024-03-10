@@ -200,10 +200,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = self.get_title()
         return title.reviews.all()
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         title = self.get_title()
         user = self.request.user
-        serializer.save(author=user, title=title)
+        if Review.objects.filter(title=title, author=user).exists():
+            return Response({'error': 'Вы уже оставили отзыв на это произведение.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        score = serializer.validated_data.get('score')
+        if int(score) > 10:
+            return Response({'error': 'Оценка не может быть выше 10 баллов.'}, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        title = self.get_title()
+        serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
