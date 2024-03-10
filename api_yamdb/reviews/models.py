@@ -98,7 +98,7 @@ class Title(models.Model):
     name = models.CharField(max_length=256, verbose_name='Название')
     year = models.IntegerField(verbose_name='Год выпуска')
     description = models.TextField(verbose_name='Описание', null=True)
-    genre_name = models.ManyToManyField(
+    genre = models.ManyToManyField(
         Genre,
         verbose_name='Slug жанра'
     )
