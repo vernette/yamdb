@@ -107,6 +107,7 @@ class Title(models.Model):
         verbose_name='Slug категории',
         on_delete=models.SET_NULL,
         null=True,
+        db_column='category'
     )
     rating = models.IntegerField(
         verbose_name='Средний рейтинг',
@@ -133,7 +134,8 @@ class Review(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
-        related_name='reviews'
+        related_name='reviews',
+        db_column='author'
     )
     score = models.IntegerField(
         verbose_name='Рейтинг',
@@ -165,7 +167,8 @@ class Comment(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
-        related_name='comments'
+        related_name='comments',
+        db_column='author'
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата добавления',
