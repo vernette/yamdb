@@ -7,11 +7,10 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.filters import SearchFilter
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
 
-from reviews.models import Title, Category, Genre, Review, User
+from reviews.models import Title, Category, Genre, Review, User, Comment
 from .serializers import (
     TitleSerializer, CategorySerializer, GenreSerializer, ReviewSerializer,
     CommentSerializer, UserSerializer, GetTokenSerializer, SignUpSerializer
@@ -22,6 +21,7 @@ from .permissions import (
     ModeratorPermission,
     UserReadOnlyPermission
 )
+from .filters import TitleFilter
 
 import api_yamdb.settings as settings
 
@@ -152,6 +152,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     permission_classes = [UserReadOnlyPermission | AdminPermission]
     http_method_names = ['get', 'post', 'patch', 'delete']
+    filterset_class = TitleFilter
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -208,15 +209,22 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = self.get_title()
         user = self.request.user
         if Review.objects.filter(title=title, author=user).exists():
-            return Response({'error': 'Вы уже оставили отзыв на это произведение.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Вы уже оставили отзыв на это произведение.'},
+                status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         score = serializer.validated_data.get('score')
         if int(score) > 10:
-            return Response({'error': 'Оценка не может быть выше 10 баллов.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Оценка не может быть выше 10 баллов.'},
+                status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers)
 
     def perform_create(self, serializer):
         title = self.get_title()
@@ -224,17 +232,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         review = self.get_object()
-        if request.user.is_admin or request.user.is_moderator or review.author == request.user:
-            serializer = self.get_serializer(review, data=request.data, partial=True)
+        if (request.user.is_admin
+                or request.user.is_moderator
+                or review.author == request.user):
+            serializer = self.get_serializer(
+                review,
+                data=request.data,
+                partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
         else:
-            return Response( status=status.HTTP_403_FORBIDDEN)
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, *args, **kwargs):
         review = self.get_object()
-        if request.user.is_admin or request.user.is_moderator or review.author == request.user:
+        if (request.user.is_admin
+                or request.user.is_moderator
+                or review.author == request.user):
             review.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -244,9 +259,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [AdminPermission |
-                          ModeratorPermission | UserPermission]
     http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = [
+        AdminPermission | ModeratorPermission | UserPermission
+    ]
 
     def get_review_id(self):
         return self.kwargs.get('review_id')
@@ -264,18 +280,37 @@ class CommentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(author=user, review=review)
 
+    def update(self, request, pk=None, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author == self.request.user:
+            return super().update(request=request, *args, **kwargs)
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author == self.request.user:
+            return super().destroy(request=request, *args, **kwargs)
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
     def update(self, request, *args, **kwargs):
         comment = self.get_object()
-        if comment.author != request.user and not request.user.is_admin and not request.user.is_moderator:
+        if (comment.author != request.user and not request.user.is_admin
+                and not request.user.is_moderator):
             return Response(status=status.HTTP_403_FORBIDDEN)
-        serializer = self.get_serializer(comment, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            comment,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
-        if request.user.is_admin or request.user.is_moderator or comment.author == request.user:
+        if (request.user.is_admin
+                or request.user.is_moderator
+                or comment.author == request.user):
             comment.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
