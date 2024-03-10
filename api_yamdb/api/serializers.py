@@ -117,14 +117,10 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
-    slug = serializers.SlugField(
-        max_length=50,
-        validators=(UniqueValidator(queryset=Genre.objects.all()),),
-    )
 
     class Meta:
         model = Genre
-        fields = ('id', 'name', 'slug')
+        fields = ('name', 'slug')
 
     def create(self, validated_data):
         slug = validated_data.get('slug')
@@ -136,10 +132,6 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    # author = serializers.SlugRelatedField(
-    #     slug_field='username',
-    #     queryset=User.objects.all()
-    # )
 
     class Meta:
         model = Review
@@ -148,11 +140,10 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        slug_field='username',
-        queryset=User.objects.all()
+        read_only=True,
+        slug_field='username'
     )
 
     class Meta:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
-        read_only_fields = ('author',)
