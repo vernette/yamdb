@@ -27,15 +27,18 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         max_length=150,
-        blank=True
+        blank=True,
+        null=True
     )
     last_name = models.CharField(
         max_length=150,
-        blank=True
+        blank=True,
+        null=True
     )
     bio = models.TextField(
         'биография',
-        blank=True
+        blank=True,
+        null=True
     )
     role = models.CharField(
         'роль',
@@ -95,7 +98,7 @@ class Title(models.Model):
     name = models.CharField(max_length=256, verbose_name='Название')
     year = models.IntegerField(verbose_name='Год выпуска')
     description = models.TextField(verbose_name='Описание', null=True)
-    genre_name = models.ManyToManyField(
+    genre = models.ManyToManyField(
         Genre,
         verbose_name='Slug жанра'
     )
@@ -107,7 +110,8 @@ class Title(models.Model):
     )
     rating = models.IntegerField(
         verbose_name='Средний рейтинг',
-        default=0
+        default=0,
+        null=True
     )
 
     class Meta:
