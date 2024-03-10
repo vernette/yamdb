@@ -92,6 +92,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(
+        max_length=50,
         validators=[UniqueValidator(queryset=Category.objects.all())]
     )
 
@@ -101,13 +102,16 @@ class CategorySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         slug = validated_data.get('slug')
+        if len(slug) > 50:
+            raise serializers.ValidationError('Длина slug не должна превышать 50 символов.')
         if Category.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError("Категория с таким slug уже существует.")
+            raise serializers.ValidationError('Категория с таким slug уже существует.')
         return super().create(validated_data)
 
 
 class GenreSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(
+        max_length=50,
         validators=(UniqueValidator(queryset=Genre.objects.all()),),
     )
 
@@ -117,8 +121,10 @@ class GenreSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         slug = validated_data.get('slug')
+        if len(slug) > 50:
+            raise serializers.ValidationError('Длина slug не должна превышать 50 символов.')
         if Genre.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError("Жанр с таким slug уже существует.")
+            raise serializers.ValidationError('Жанр с таким slug уже существует.')
         return super().create(validated_data)
 
 
