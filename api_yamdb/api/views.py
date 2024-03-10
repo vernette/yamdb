@@ -19,6 +19,7 @@ from .permissions import (
     AdminPermission,
     UserPermission,
     ModeratorPermission,
+    UserReadOnlyPermission
 )
 
 import api_yamdb.settings as settings
@@ -148,13 +149,14 @@ class AuthViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    permission_classes = [UserPermission | AdminPermission]
+    permission_classes = [UserReadOnlyPermission | AdminPermission]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [UserPermission | AdminPermission]
+    permission_classes = [UserReadOnlyPermission | AdminPermission]
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
@@ -167,7 +169,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [UserPermission | AdminPermission]
+    permission_classes = [UserReadOnlyPermission | AdminPermission]
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'name'
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
@@ -182,6 +187,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     permission_classes = [
         AdminPermission | UserPermission | ModeratorPermission]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_title_id(self):
         return self.kwargs.get('title_id')
