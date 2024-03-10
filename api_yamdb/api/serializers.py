@@ -92,9 +92,20 @@ class TitleSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         if len(value) > 256:
             raise ValidationError(
-                f'Название произведения не может быть длиннее 256 символов!'
+                'Название произведения не может быть длиннее 256 символов!'
             )
         return value
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['category'] = {
+            'name': instance.category.name,
+            'slug': instance.category.slug
+        }
+        representation['genre'] = [
+            {'name': genre.name, 'slug': genre.slug} for genre in instance.genre.all()
+        ]
+        return representation
 
 
 class CategorySerializer(serializers.ModelSerializer):
