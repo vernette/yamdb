@@ -221,12 +221,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)
 
+    def update(self, request, *args, **kwargs):
+        review = self.get_object()
+        if request.user.is_admin or request.user.is_moderator or review.author == request.user:
+            serializer = self.get_serializer(review, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response( status=status.HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, *args, **kwargs):
+        review = self.get_object()
+        if request.user.is_admin or request.user.is_moderator or review.author == request.user:
+            review.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [AdminPermission |
                           ModeratorPermission | UserPermission]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_review_id(self):
         return self.kwargs.get('review_id')
@@ -243,3 +262,20 @@ class CommentViewSet(viewsets.ModelViewSet):
         review = self.get_review()
         user = self.request.user
         serializer.save(author=user, review=review)
+
+    def update(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author != request.user and not request.user.is_admin and not request.user.is_moderator:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = self.get_serializer(comment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if request.user.is_admin or request.user.is_moderator or comment.author == request.user:
+            comment.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
