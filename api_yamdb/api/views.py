@@ -156,11 +156,25 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [UserPermission | AdminPermission]
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        slug = self.kwargs.get('slug')
+        obj = get_object_or_404(queryset, slug=slug)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = [UserPermission | AdminPermission]
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        slug = self.kwargs.get('slug')
+        obj = get_object_or_404(queryset, slug=slug)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
