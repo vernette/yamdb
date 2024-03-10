@@ -89,6 +89,13 @@ class TitleSerializer(serializers.ModelSerializer):
         average_rating = reviews.aggregate(Avg('score'))['score__avg']
         return round(average_rating) if average_rating else None
 
+    def validate_name(self, value):
+        if len(value) > 256:
+            raise ValidationError(
+                f'Название произведения не может быть длиннее 256 символов!'
+            )
+        return value
+
 
 class CategorySerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(
@@ -129,15 +136,14 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        slug_field='username',
-        queryset=User.objects.all()
-    )
+    # author = serializers.SlugRelatedField(
+    #     slug_field='username',
+    #     queryset=User.objects.all()
+    # )
 
     class Meta:
         model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
-        read_only_fields = ('author',)
+        fields = ('id', 'text', 'score', 'pub_date')
 
 
 class CommentSerializer(serializers.ModelSerializer):
