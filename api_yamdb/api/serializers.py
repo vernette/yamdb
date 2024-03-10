@@ -91,12 +91,20 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(
+        validators=(UniqueValidator(queryset=Category.objects.all()),),
+    )
+
     class Meta:
         model = Category
         fields = '__all__'
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(
+        validators=(UniqueValidator(queryset=Genre.objects.all()),),
+    )
+
     class Meta:
         model = Genre
         fields = '__all__'
