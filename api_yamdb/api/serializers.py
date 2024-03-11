@@ -1,12 +1,12 @@
 import re
 
-from rest_framework import serializers
-from django.db.models import Avg
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 
-from reviews.models import Title, Category, Genre, Review, Comment
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
@@ -56,11 +56,11 @@ class UserSerializer(serializers.ModelSerializer):
             )
         elif re.search(r'^[\w.@+-]+\Z', value) is None:
             raise ValidationError(
-                f'Cимволы <{value}> - запрещены для использования в нике!'
+                'Cимволы <{value}> - запрещены для использования в нике!'
             )
         elif len(value) > 150:
             raise ValidationError(
-                f'Имя пользователя не может быть длиннее 150 символов!'
+                'Имя пользователя не может быть длиннее 150 символов!'
             )
         else:
             return value
@@ -68,8 +68,8 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         if len(value) > 150:
             raise ValidationError(
-                f'Адрес электронной почты '
-                f'не может быть длиннее 150 символов!'
+                'Адрес электронной почты '
+                'не может быть длиннее 150 символов!'
             )
         else:
             return value
