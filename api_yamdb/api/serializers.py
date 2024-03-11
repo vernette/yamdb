@@ -77,8 +77,15 @@ class UserSerializer(serializers.ModelSerializer):
 
 class TitleSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
-    category = serializers.SlugRelatedField(slug_field='slug', queryset=Category.objects.all())
-    genre = serializers.SlugRelatedField(slug_field='slug', queryset=Genre.objects.all(), many=True)
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True
+    )
 
     class Meta:
         model = Title
@@ -103,16 +110,15 @@ class TitleSerializer(serializers.ModelSerializer):
             'slug': instance.category.slug
         }
         representation['genre'] = [
-            {'name': genre.name, 'slug': genre.slug} for genre in instance.genre.all()
+            {
+                'name': genre.name,
+                'slug': genre.slug
+            } for genre in instance.genre.all()
         ]
         return representation
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    slug = serializers.SlugField(
-        max_length=50,
-        validators=[UniqueValidator(queryset=Category.objects.all())]
-    )
 
     class Meta:
         model = Category
@@ -121,9 +127,13 @@ class CategorySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         slug = validated_data.get('slug')
         if len(slug) > 50:
-            raise serializers.ValidationError('Длина slug не должна превышать 50 символов.')
+            raise serializers.ValidationError(
+                'Длина slug не должна превышать 50 символов.'
+            )
         if Category.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError('Категория с таким slug уже существует.')
+            raise serializers.ValidationError(
+                'Категория с таким slug уже существует.'
+            )
         return super().create(validated_data)
 
 
@@ -136,14 +146,21 @@ class GenreSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         slug = validated_data.get('slug')
         if len(slug) > 50:
-            raise serializers.ValidationError('Длина slug не должна превышать 50 символов.')
+            raise serializers.ValidationError(
+                'Длина slug не должна превышать 50 символов.'
+            )
         if Genre.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError('Жанр с таким slug уже существует.')
+            raise serializers.ValidationError(
+                'Жанр с таким slug уже существует.'
+            )
         return super().create(validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
 
     class Meta:
         model = Review
