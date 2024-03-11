@@ -1,29 +1,29 @@
 import random
 
 from django.core.mail import send_mail
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Title, Category, Genre, Review, User, Comment
-from .serializers import (
-    TitleSerializer, CategorySerializer, GenreSerializer, ReviewSerializer,
-    CommentSerializer, UserSerializer, GetTokenSerializer, SignUpSerializer
-)
-from .permissions import (
-    AdminPermission,
-    UserPermission,
-    ModeratorPermission,
-    UserReadOnlyPermission
-)
-from .filters import TitleFilter
 
 import api_yamdb.settings as settings
+
+from reviews.models import Category, Genre, Review, Title, User
+from .filters import TitleFilter
+from .permissions import (
+    AdminPermission, ModeratorPermission, UserPermission,
+    UserReadOnlyPermission
+)
+from .serializers import (
+    CategorySerializer, CommentSerializer, GenreSerializer,
+    GetTokenSerializer, ReviewSerializer, SignUpSerializer,
+    TitleSerializer, UserSerializer
+)
 
 
 class UserViewSet(viewsets.ModelViewSet):

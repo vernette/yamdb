@@ -1,6 +1,7 @@
 from pathlib import Path
-
 from datetime import timedelta
+
+from reviews.constants import PAGE_SIZE, ACCESS_TOKEN_LIFETIME_DAYS
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -119,11 +120,11 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': PAGE_SIZE,
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=ACCESS_TOKEN_LIFETIME_DAYS),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
