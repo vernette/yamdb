@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from .constants import TEXT_LENGTH_LIMIT
 from .validators import validate_username
@@ -137,9 +138,22 @@ class Review(models.Model):
         related_name='reviews',
         db_column='author'
     )
-    score = models.IntegerField(
+    # score = models.IntegerField(
+    #     verbose_name='Рейтинг',
+    #     default=0
+    # )
+    score = models.PositiveSmallIntegerField(
         verbose_name='Рейтинг',
-        default=0
+        validators=[
+            MinValueValidator(
+                0,
+                message='Рейтинг не может быть меньше 0.'
+            ),
+            MaxValueValidator(
+                10,
+                message='Рейтинг не может быть больше  10.'
+            )
+        ],
     )
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
