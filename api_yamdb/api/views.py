@@ -263,11 +263,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     ]
 
     def get_review_id(self):
-        return self.kwargs.get('review_id')
+        return self.kwargs.get('review_id'), self.kwargs.get('title_id')
 
     def get_review(self):
-        review_id = self.get_review_id()
-        return get_object_or_404(Review, pk=review_id)
+        review_id, title_id = self.get_review_id()
+        return get_object_or_404(Review, pk=review_id, title_id=title_id)
 
     def get_queryset(self):
         review = self.get_review()
