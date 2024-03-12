@@ -1,5 +1,6 @@
 import random
 
+from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -10,16 +11,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-
-import api_yamdb.settings as settings
-
 from reviews.models import Category, Genre, Review, Title, User
-from .filters import TitleFilter
-from .permissions import (
+from api.filters import TitleFilter
+from api.permissions import (
     AdminPermission, ModeratorPermission, UserPermission,
     UserReadOnlyPermission
 )
-from .serializers import (
+from api.serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     GetTokenSerializer, ReviewSerializer, SignUpSerializer,
     TitleSerializer, UserSerializer
