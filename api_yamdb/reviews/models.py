@@ -6,36 +6,30 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from .constants import TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE
 from .validators import validate_username
 
-ROLE_CHOICES = (
-    ('admin', 'Админ'),
-    ('moderator', 'Модератор'),
-    ('user', 'Пользователь')
-)
-
 
 class User(AbstractUser):
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+
+    ROLE_CHOICES = (
+        (ADMIN, 'Админ'),
+        (MODERATOR, 'Модератор'),
+        (USER, 'Пользователь')
+    )
+
     username = models.CharField(
+        'имя пользователя',
         validators=(validate_username,),
         max_length=150,
         unique=True,
-        blank=False,
         null=False
     )
     email = models.EmailField(
+        'адрес электронной почты',
         max_length=254,
         unique=True,
-        blank=False,
         null=False
-    )
-    first_name = models.CharField(
-        max_length=150,
-        blank=True,
-        null=True
-    )
-    last_name = models.CharField(
-        max_length=150,
-        blank=True,
-        null=True
     )
     bio = models.TextField(
         'биография',
@@ -44,9 +38,9 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'роль',
-        max_length=20,
+        max_length=max(len(role) for role, _ in ROLE_CHOICES),
         choices=ROLE_CHOICES,
-        default='user'
+        default=USER
     )
     confirmation_code = models.CharField(
         'код подтверждения',
@@ -57,15 +51,11 @@ class User(AbstractUser):
 
     @property
     def is_moderator(self):
-        return self.role == 'moderator'
+        return self.role == self.MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == 'admin' or self.is_staff or self.is_superuser
-
-    @property
-    def is_user(self):
-        return self.role == 'user'
+        return self.role == self.ADMIN or self.is_staff or self.is_superuser
 
     class Meta:
         verbose_name = 'Пользователь'
