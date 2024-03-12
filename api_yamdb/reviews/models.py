@@ -3,8 +3,12 @@ from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .constants import TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE
-from .validators import validate_username
+from reviews.constants import (
+    TEXT_LENGTH_LIMIT, MIN_RATING_VALUE,
+    MAX_RATING_VALUE, NAME_MAX_LENGTH_LIMIT,
+    EMAIL_MAX_LENGTH_LIMIT, CONFiRMATION_CODE_MAX_LENGTH_LIMIT
+)
+from reviews.validators import validate_username
 
 
 class User(AbstractUser):
@@ -21,13 +25,13 @@ class User(AbstractUser):
     username = models.CharField(
         'имя пользователя',
         validators=(validate_username,),
-        max_length=150,
+        max_length=NAME_MAX_LENGTH_LIMIT,
         unique=True,
         null=False
     )
     email = models.EmailField(
         'адрес электронной почты',
-        max_length=254,
+        max_length=EMAIL_MAX_LENGTH_LIMIT,
         unique=True,
         null=False
     )
@@ -44,9 +48,8 @@ class User(AbstractUser):
     )
     confirmation_code = models.CharField(
         'код подтверждения',
-        max_length=255,
+        max_length=CONFiRMATION_CODE_MAX_LENGTH_LIMIT,
         null=True,
-        blank=False
     )
 
     @property
@@ -60,6 +63,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        ordering = ('username',)
 
 
 class Category(models.Model):
