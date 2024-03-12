@@ -138,10 +138,6 @@ class Review(models.Model):
         related_name='reviews',
         db_column='author'
     )
-    # score = models.IntegerField(
-    #     verbose_name='Рейтинг',
-    #     default=0
-    # )
     score = models.PositiveSmallIntegerField(
         verbose_name='Рейтинг',
         validators=[
