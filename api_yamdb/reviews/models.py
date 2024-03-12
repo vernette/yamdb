@@ -143,6 +143,7 @@ class AbstractUserContent(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('-pub_date',)
 
     def __str__(self):
         return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
@@ -169,7 +170,7 @@ class Review(AbstractUserContent):
         ],
     )
 
-    class Meta:
+    class Meta(AbstractUserContent.Meta):
         verbose_name = 'отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
@@ -188,6 +189,6 @@ class Comment(AbstractUserContent):
         related_name='comments'
     )
 
-    class Meta:
+    class Meta(AbstractUserContent.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
