@@ -132,3 +132,9 @@ Authorization: Bearer ваш_jwt_токен
 ```
 
 ## Полная документация доступна по [ссылке](http://127.0.0.1:8000/redoc/)
+
+## Авторы
+
+- [Андрей Мурашов](https://github.com/AndreyMurashov)
+- [Виталий Тамилин](https://github.com/XxSweeperxX)
+- [Никита Скрябин](https://github.com/vernette)
