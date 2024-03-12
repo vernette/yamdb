@@ -125,19 +125,35 @@ class Title(models.Model):
         return self.name
 
 
-class Review(models.Model):
+class AbstractUserContent(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+        related_name='%(class)s_related',
+        related_query_name='%(class)ss',
+        db_column='author'
+    )
+    text = models.TextField(verbose_name='Текст')
+    pub_date = models.DateTimeField(
+        verbose_name='Дата добавления',
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
+
+
+class Review(AbstractUserContent):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
         verbose_name='Произведение',
         related_name='reviews'
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор',
-        related_name='reviews',
-        db_column='author'
     )
     score = models.PositiveSmallIntegerField(
         verbose_name='Рейтинг',
@@ -152,12 +168,6 @@ class Review(models.Model):
             )
         ],
     )
-    text = models.TextField(verbose_name='Текст')
-    pub_date = models.DateTimeField(
-        verbose_name='Дата добавления',
-        auto_now_add=True,
-        db_index=True
-    )
 
     class Meta:
         verbose_name = 'отзыв'
@@ -169,34 +179,15 @@ class Review(models.Model):
             ),
         ]
 
-    def __str__(self):
-        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
 
-
-class Comment(models.Model):
+class Comment(AbstractUserContent):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
         related_name='comments'
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор',
-        related_name='comments',
-        db_column='author'
-    )
-    pub_date = models.DateTimeField(
-        verbose_name='Дата добавления',
-        auto_now_add=True,
-        db_index=True
-    )
-    text = models.TextField(verbose_name='Текст')
 
     class Meta:
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-
-    def __str__(self):
-        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
