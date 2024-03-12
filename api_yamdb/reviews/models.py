@@ -1,7 +1,9 @@
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .constants import TEXT_LENGTH_LIMIT
+from .constants import TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE
 from .validators import validate_username
 
 ROLE_CHOICES = (
@@ -123,64 +125,70 @@ class Title(models.Model):
         return self.name
 
 
-class Review(models.Model):
+class AbstractUserContent(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+        related_name='%(class)s_related',
+        related_query_name='%(class)ss',
+        db_column='author'
+    )
+    text = models.TextField(verbose_name='Текст')
+    pub_date = models.DateTimeField(
+        verbose_name='Дата добавления',
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ('-pub_date',)
+
+    def __str__(self):
+        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
+
+
+class Review(AbstractUserContent):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
         verbose_name='Произведение',
         related_name='reviews'
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор',
-        related_name='reviews',
-        db_column='author'
-    )
-    score = models.IntegerField(
+    score = models.PositiveSmallIntegerField(
         verbose_name='Рейтинг',
-        default=0
-    )
-    text = models.TextField(verbose_name='Текст')
-    pub_date = models.DateTimeField(
-        verbose_name='Дата добавления',
-        auto_now_add=True,
-        db_index=True
+        validators=[
+            MinValueValidator(
+                MIN_RATING_VALUE,
+                message='Рейтинг не может быть меньше 0.'
+            ),
+            MaxValueValidator(
+                MAX_RATING_VALUE,
+                message='Рейтинг не может быть больше  10.'
+            )
+        ],
     )
 
-    class Meta:
+    class Meta(AbstractUserContent.Meta):
         verbose_name = 'отзыв'
         verbose_name_plural = 'Отзывы'
-        unique_together = [['title', 'author']]
+        constraints = [
+            UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_title_author'
+            ),
+        ]
 
-    def __str__(self):
-        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
 
-
-class Comment(models.Model):
+class Comment(AbstractUserContent):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
         related_name='comments'
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор',
-        related_name='comments',
-        db_column='author'
-    )
-    pub_date = models.DateTimeField(
-        verbose_name='Дата добавления',
-        auto_now_add=True,
-        db_index=True
-    )
-    text = models.TextField(verbose_name='Текст')
 
-    class Meta:
+    class Meta(AbstractUserContent.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-
-    def __str__(self):
-        return f'{self.author}: {self.text}'[:TEXT_LENGTH_LIMIT]
