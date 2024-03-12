@@ -3,7 +3,7 @@ from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .constants import TEXT_LENGTH_LIMIT
+from .constants import TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE
 from .validators import validate_username
 
 ROLE_CHOICES = (
@@ -160,11 +160,11 @@ class Review(AbstractUserContent):
         verbose_name='Рейтинг',
         validators=[
             MinValueValidator(
-                0,
+                MIN_RATING_VALUE,
                 message='Рейтинг не может быть меньше 0.'
             ),
             MaxValueValidator(
-                10,
+                MAX_RATING_VALUE,
                 message='Рейтинг не может быть больше  10.'
             )
         ],
