@@ -32,7 +32,7 @@ class Command(BaseCommand):
                         model(**{'author_id' if key == 'author'
                                  else 'category_id' if key == 'category'
                                  else key: val for key, val in data.items()
-                                 }) for data in reader),
+                                 }) for data in reader)
                 )
                 self.stdout.write(
                     f'Обьекты <{model}> '
