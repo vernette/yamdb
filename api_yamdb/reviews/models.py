@@ -6,8 +6,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
-    NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT, CONFIRMATION_CODE_MAX_LENGTH_LIMIT,
-    MIN_YEAR_VALUE, MODEL_NAME_LENGTH_LIMIT
+    NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT,
+    CONFIRMATION_CODE_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE,
+    MODEL_NAME_LENGTH_LIMIT
 )
 from reviews.validators import validate_username
 
