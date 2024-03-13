@@ -13,7 +13,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Category, Genre, Review, Title, User
 from api.filters import TitleFilter
 from api.permissions import (
     AdminPermission, ModeratorPermission, UserReadOnlyPermission
@@ -23,6 +22,8 @@ from api.serializers import (
     GetTokenSerializer, ReviewSerializer, SignUpSerializer,
     TitleSerializer, UserSerializer
 )
+from reviews.validators import validate_confirmation_code
+from reviews.models import Category, Genre, Review, Title, User
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -71,10 +72,13 @@ class AuthViewSet(viewsets.ModelViewSet):
             user.confirmation_code = self.get_new_confirmation_code()
             user.save()
             self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except (IntegrityError, serializers.ValidationError) as e:
             return Response(
-                e.args[0],
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except (IntegrityError, serializers.ValidationError) as error:
+            return Response(
+                error.args[0],
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -82,25 +86,32 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def token(self, request):
-        serializer = GetTokenSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.data['username']
-            user = get_object_or_404(User, username=username)
-            conf_code = user.confirmation_code
-
-            if conf_code != serializer.data['confirmation_code']:
-                return Response(
-                    'Неверный код подтверждения!',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            else:
+        try:
+            serializer = GetTokenSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = get_object_or_404(
+                User,
+                username=serializer.validated_data['username']
+            )
+            if validate_confirmation_code(
+                user_code=user.confirmation_code,
+                request_code=serializer.validated_data['confirmation_code']
+            ):
                 token = AccessToken.for_user(user)
                 return Response(
                     {'token': str(token)},
                     status=status.HTTP_201_CREATED
                 )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(
+                    {'error': 'Неверный код подтверждения'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except serializers.ValidationError as error:
+            return Response(
+                error.args[0],
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @staticmethod
     def send_confirmation_code(user):
