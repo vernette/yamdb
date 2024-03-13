@@ -3,20 +3,20 @@ import random
 from django.conf import settings
 from django.db.models import Avg
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Category, Genre, Review, Title, User
 from api.filters import TitleFilter
 from api.permissions import (
-    AdminPermission, ModeratorPermission, UserPermission,
-    UserReadOnlyPermission
+    AdminPermission, ModeratorPermission, UserReadOnlyPermission
 )
 from api.serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
@@ -32,24 +32,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
-
-    @action(
-        methods=('GET', 'PATCH', 'DELETE'),
-        detail=False,
-        url_path=r'(?P<username>[\w.@+-]+)',
-    )
-    def username(self, request, username):
-        user = get_object_or_404(User, username=username)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'DELETE':
-            user.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     @action(
         methods=('GET', 'PATCH',),
@@ -79,24 +62,21 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def signup(self, request):
-        user = User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        ).first()
-
-        if user:
-            serializer = SignUpSerializer(user, data=request.data)
-        else:
+        try:
             serializer = SignUpSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.validated_data['confirmation_code'] = \
-                self.get_new_confirmation_code()
-            user = serializer.save()
+            serializer.is_valid(raise_exception=True)
+            user, created = User.objects.get_or_create(
+                **dict(serializer.validated_data)
+            )
+            user.confirmation_code = self.get_new_confirmation_code()
+            user.save()
             self.send_confirmation_code(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except (IntegrityError, serializers.ValidationError) as e:
+            return Response(
+                e.args[0],
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(methods=['POST'],
             detail=False,
@@ -195,7 +175,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [
-        AdminPermission | UserPermission | ModeratorPermission]
+        AdminPermission | IsAuthenticatedOrReadOnly | ModeratorPermission]
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_title_id(self):
@@ -265,7 +245,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = [
-        AdminPermission | ModeratorPermission | UserPermission
+        AdminPermission | ModeratorPermission | IsAuthenticatedOrReadOnly
     ]
 
     def get_review_id(self):

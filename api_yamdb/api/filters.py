@@ -14,6 +14,9 @@ class TitleFilter(filters.FilterSet):
         to_field_name='slug',
         queryset=Category.objects.all()
     )
+    name = filters.CharFilter(
+        lookup_expr='icontains'
+    )
 
     class Meta:
         model = Title
