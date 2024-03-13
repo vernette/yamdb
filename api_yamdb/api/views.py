@@ -1,6 +1,4 @@
-from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -13,14 +11,13 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
 from api.mixins import ReviewCommentMixin, GenreCategoryMixin
-from api.permissions import (
-    AdminPermission, AdminOrReadOnlyPermission
-)
+from api.permissions import AdminPermission, AdminOrReadOnlyPermission
 from api.serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     GetTokenSerializer, ReviewSerializer, SignUpSerializer,
     TitleSerializer, UserSerializer
 )
+from api.utils import send_confirmation_code
 from reviews.models import Category, Genre, Review, Title, User
 
 
@@ -50,7 +47,10 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             serializer.is_valid(raise_exception=True)
             serializer.save(role=instance.role)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
 
 
 class AuthViewSet(viewsets.ModelViewSet):
@@ -67,9 +67,10 @@ class AuthViewSet(viewsets.ModelViewSet):
             user, created = User.objects.get_or_create(
                 **dict(serializer.validated_data)
             )
-            self.send_confirmation_code(
+            send_confirmation_code(
                 user=user,
-                confirmation_code=default_token_generator.make_token(user))
+                confirmation_code=default_token_generator.make_token(user)
+            )
             return Response(
                 serializer.data,
                 status=status.HTTP_200_OK
@@ -110,22 +111,6 @@ class AuthViewSet(viewsets.ModelViewSet):
                 error.args[0],
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-    @staticmethod
-    def send_confirmation_code(user, confirmation_code):
-        subject = 'Код подтверждения'
-        message = (
-            f'Добрый день, {user.username}! \n'
-            f'Ваш код подтверждения '
-            f'для получения токена на YAMDB: \n'
-            f'{confirmation_code}'
-        )
-        user_email = user.email
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            [user_email])
 
 
 class TitleViewSet(viewsets.ModelViewSet):

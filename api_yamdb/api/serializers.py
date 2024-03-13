@@ -2,11 +2,11 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.constants import (
     NAME_MAX_LENGTH_LIMIT,
     EMAIL_MAX_LENGTH_LIMIT
 )
+from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.validators import validate_username, validate_email
 
 User = get_user_model()
@@ -41,11 +41,15 @@ class SignUpSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
-        validators=(UniqueValidator(queryset=User.objects.all()),)
+        validators=(UniqueValidator(
+            queryset=User.objects.all()),
+        )
     )
     email = serializers.EmailField(
         required=True,
-        validators=(UniqueValidator(queryset=User.objects.all()),)
+        validators=(UniqueValidator(
+            queryset=User.objects.all()),
+        )
     )
 
     class Meta:
@@ -78,7 +82,9 @@ class TitleSerializer(serializers.ModelSerializer):
         allow_empty=False,
         many=True
     )
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField(
+        read_only=True
+    )
 
     class Meta:
         model = Title
