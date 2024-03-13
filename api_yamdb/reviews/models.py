@@ -7,7 +7,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE,
     MAX_RATING_VALUE, NAME_MAX_LENGTH_LIMIT,
-    EMAIL_MAX_LENGTH_LIMIT, CONFiRMATION_CODE_MAX_LENGTH_LIMIT
+    EMAIL_MAX_LENGTH_LIMIT, CONFIRMATION_CODE_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE
 )
 from reviews.validators import validate_username
 
@@ -49,7 +49,7 @@ class User(AbstractUser):
     )
     confirmation_code = models.CharField(
         'код подтверждения',
-        max_length=CONFiRMATION_CODE_MAX_LENGTH_LIMIT,
+        max_length=CONFIRMATION_CODE_MAX_LENGTH_LIMIT,
         null=True,
     )
 
@@ -97,7 +97,7 @@ class Title(models.Model):
         verbose_name='Год выпуска',
         validators=[
             MinValueValidator(
-                1,
+                MIN_YEAR_VALUE,
                 message='Год не может быть меньше 1.'
             ),
             MaxValueValidator(
