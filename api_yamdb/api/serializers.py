@@ -1,11 +1,13 @@
-import re
-
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.constants import (
+    NAME_MAX_LENGTH_LIMIT,
+    EMAIL_MAX_LENGTH_LIMIT
+)
+from reviews.validators import validate_username, validate_email
 
 User = get_user_model()
 
@@ -20,10 +22,21 @@ class GetTokenSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        max_length=NAME_MAX_LENGTH_LIMIT,
+        required=True
+    )
+    email = serializers.EmailField(
+        max_length=EMAIL_MAX_LENGTH_LIMIT,
+        required=True
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email')
+
+    def validate_username(self, value):
+        return validate_username(value)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -49,29 +62,10 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_field = ('role',)
 
     def validate_username(self, value):
-        if value == 'me':
-            raise ValidationError(
-                'Имя пользователя "me" запрещено!'
-            )
-        elif re.search(r'^[\w.@+-]+\Z', value) is None:
-            raise ValidationError(
-                'Cимволы <{value}> - запрещены для использования в нике!'
-            )
-        elif len(value) > 150:
-            raise ValidationError(
-                'Имя пользователя не может быть длиннее 150 символов!'
-            )
-        else:
-            return value
+        return validate_username(value)
 
     def validate_email(self, value):
-        if len(value) > 150:
-            raise ValidationError(
-                'Адрес электронной почты '
-                'не может быть длиннее 150 символов!'
-            )
-        else:
-            return value
+        return validate_email(value)
 
 
 class TitleSerializer(serializers.ModelSerializer):
