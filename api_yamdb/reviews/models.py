@@ -1,8 +1,8 @@
-from django.db import models
-from django.utils import timezone
-from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+from django.db.models import UniqueConstraint
+from django.utils import timezone
 
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
