@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -68,7 +69,7 @@ class User(AbstractUser):
 
 class Category(models.Model):
     name = models.CharField(max_length=256)
-    slug = models.SlugField(max_length=50)
+    slug = models.SlugField()
 
     class Meta:
         verbose_name = 'категория (тип) произведения'
@@ -92,7 +93,19 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(max_length=256, verbose_name='Название')
-    year = models.IntegerField(verbose_name='Год выпуска')
+    year = models.SmallIntegerField(
+        verbose_name='Год выпуска',
+        validators=[
+            MinValueValidator(
+                1,
+                message='Год не может быть меньше 1.'
+            ),
+            MaxValueValidator(
+                timezone.now().year,
+                message='Год не может быть больше текущего.'
+            )
+        ]
+    )
     description = models.TextField(verbose_name='Описание', null=True)
     genre = models.ManyToManyField(
         Genre,
