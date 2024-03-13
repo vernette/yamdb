@@ -111,36 +111,12 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ('name', 'slug')
 
-    def create(self, validated_data):
-        slug = validated_data.get('slug')
-        if len(slug) > 50:
-            raise serializers.ValidationError(
-                'Длина slug не должна превышать 50 символов.'
-            )
-        if Category.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError(
-                'Категория с таким slug уже существует.'
-            )
-        return super().create(validated_data)
-
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
         fields = ('name', 'slug')
-
-    def create(self, validated_data):
-        slug = validated_data.get('slug')
-        if len(slug) > 50:
-            raise serializers.ValidationError(
-                'Длина slug не должна превышать 50 символов.'
-            )
-        if Genre.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError(
-                'Жанр с таким slug уже существует.'
-            )
-        return super().create(validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
