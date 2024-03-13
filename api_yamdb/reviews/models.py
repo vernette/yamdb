@@ -6,8 +6,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
-    NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT,
-    CONFIRMATION_CODE_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE,
+    NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE,
     MODEL_NAME_LENGTH_LIMIT
 )
 from reviews.validators import validate_username
@@ -47,11 +46,6 @@ class User(AbstractUser):
         max_length=max(len(role) for role, _ in ROLE_CHOICES),
         choices=ROLE_CHOICES,
         default=USER
-    )
-    confirmation_code = models.CharField(
-        'код подтверждения',
-        max_length=CONFIRMATION_CODE_MAX_LENGTH_LIMIT,
-        null=True,
     )
 
     @property

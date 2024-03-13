@@ -1,9 +1,8 @@
-import random
-
 from django.conf import settings
-from django.db.models import Avg
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
@@ -23,7 +22,6 @@ from api.serializers import (
     TitleSerializer, UserSerializer
 )
 from reviews.models import Category, Genre, Review, Title, User
-from reviews.validators import validate_confirmation_code
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -69,9 +67,9 @@ class AuthViewSet(viewsets.ModelViewSet):
             user, created = User.objects.get_or_create(
                 **dict(serializer.validated_data)
             )
-            user.confirmation_code = self.get_new_confirmation_code()
-            user.save()
-            self.send_confirmation_code(user)
+            self.send_confirmation_code(
+                user=user,
+                confirmation_code=default_token_generator.make_token(user))
             return Response(
                 serializer.data,
                 status=status.HTTP_200_OK
@@ -93,9 +91,9 @@ class AuthViewSet(viewsets.ModelViewSet):
                 User,
                 username=serializer.validated_data['username']
             )
-            if validate_confirmation_code(
-                user_code=user.confirmation_code,
-                request_code=serializer.validated_data['confirmation_code']
+            if default_token_generator.check_token(
+                user=user,
+                token=serializer.validated_data['confirmation_code']
             ):
                 token = AccessToken.for_user(user)
                 return Response(
@@ -114,13 +112,13 @@ class AuthViewSet(viewsets.ModelViewSet):
             )
 
     @staticmethod
-    def send_confirmation_code(user):
+    def send_confirmation_code(user, confirmation_code):
         subject = 'Код подтверждения'
         message = (
             f'Добрый день, {user.username}! \n'
             f'Ваш код подтверждения '
             f'для получения токена на YAMDB: \n'
-            f'{user.confirmation_code}'
+            f'{confirmation_code}'
         )
         user_email = user.email
         send_mail(
@@ -128,13 +126,6 @@ class AuthViewSet(viewsets.ModelViewSet):
             message,
             settings.EMAIL_HOST_USER,
             [user_email])
-
-    @staticmethod
-    def get_new_confirmation_code():
-        code = ""
-        for i in range(6):
-            code += str(random.randint(0, 9))
-        return code
 
 
 class TitleViewSet(viewsets.ModelViewSet):
