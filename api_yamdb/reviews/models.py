@@ -5,9 +5,9 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from reviews.constants import (
-    TEXT_LENGTH_LIMIT, MIN_RATING_VALUE,
-    MAX_RATING_VALUE, NAME_MAX_LENGTH_LIMIT,
-    EMAIL_MAX_LENGTH_LIMIT, CONFIRMATION_CODE_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE
+    TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
+    NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT, CONFIRMATION_CODE_MAX_LENGTH_LIMIT,
+    MIN_YEAR_VALUE, MODEL_NAME_LENGTH_LIMIT
 )
 from reviews.validators import validate_username
 
@@ -67,32 +67,42 @@ class User(AbstractUser):
         ordering = ('username',)
 
 
-class Category(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField()
+class AbstractBaseModel(models.Model):
+    name = models.CharField(
+        max_length=MODEL_NAME_LENGTH_LIMIT,
+        verbose_name='Название'
+    )
+    slug = models.SlugField(
+        verbose_name='Слаг'
+    )
 
     class Meta:
+        abstract = True
+        ordering = ('-name',)
+
+    def __str__(self):
+        return self.name
+
+
+class Category(AbstractBaseModel):
+
+    class Meta(AbstractBaseModel.Meta):
         verbose_name = 'категория (тип) произведения'
         verbose_name_plural = 'Категории (типы) произведений'
 
-    def __str__(self):
-        return self.name
 
+class Genre(AbstractBaseModel):
 
-class Genre(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(max_length=50)
-
-    class Meta:
+    class Meta(AbstractBaseModel.Meta):
         verbose_name = 'жанр произведения'
         verbose_name_plural = 'Жанры произведений'
 
-    def __str__(self):
-        return self.name
-
 
 class Title(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название')
+    name = models.CharField(
+        max_length=MODEL_NAME_LENGTH_LIMIT,
+        verbose_name='Название'
+    )
     year = models.SmallIntegerField(
         verbose_name='Год выпуска',
         validators=[
