@@ -1,5 +1,4 @@
 from rest_framework import permissions
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 
 class AdminPermission(permissions.BasePermission):
@@ -8,19 +7,20 @@ class AdminPermission(permissions.BasePermission):
         return request.user.is_authenticated and request.user.is_admin
 
 
-class ModeratorPermission(permissions.BasePermission):
-
-    def has_permission(self, request, view):
-        return (request.user.is_authenticated
-                and (request.method in permissions.SAFE_METHODS
-                     or request.user.is_moderator))
-
-
-class UserReadOnlyPermission(IsAuthenticatedOrReadOnly):
+class AdminOrReadOnlyPermission(AdminPermission):
 
     def has_permission(self, request, view):
         permission = super().has_permission(request, view)
+        return (request.method in permissions.SAFE_METHODS
+                or permission)
 
-        if permission and request.method in ('POST', 'PATCH', 'DELETE'):
-            return False
-        return permission
+
+class AuthorModeratorAdminPermission(permissions.BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or request.user.is_admin
+            or request.user.is_moderator
+            or obj.author == request.user
+        )
