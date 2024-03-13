@@ -74,7 +74,8 @@ class AbstractBaseModel(models.Model):
         verbose_name='Название'
     )
     slug = models.SlugField(
-        verbose_name='Слаг'
+        verbose_name='Слаг',
+        unique=True
     )
 
     class Meta:
