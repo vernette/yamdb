@@ -1,7 +1,6 @@
 import re
 
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
@@ -76,7 +75,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    rating = serializers.SerializerMethodField()
     category = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Category.objects.all()
@@ -86,15 +84,11 @@ class TitleSerializer(serializers.ModelSerializer):
         queryset=Genre.objects.all(),
         many=True
     )
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = '__all__'
-
-    def get_rating(self, title):
-        reviews = Review.objects.filter(title=title)
-        average_rating = reviews.aggregate(Avg('score'))['score__avg']
-        return round(average_rating) if average_rating else None
 
     def validate_name(self, value):
         if len(value) > 256:

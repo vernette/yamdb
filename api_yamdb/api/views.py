@@ -1,6 +1,7 @@
 import random
 
 from django.conf import settings
+from django.db.models import Avg
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -151,6 +152,11 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = [UserReadOnlyPermission | AdminPermission]
     http_method_names = ['get', 'post', 'patch', 'delete']
     filterset_class = TitleFilter
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.annotate(rating=Avg('reviews__score'))
+        return queryset
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
