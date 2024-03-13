@@ -25,3 +25,7 @@ def validate_email(value):
         )
     else:
         return value
+
+
+def validate_confirmation_code(user_code, request_code):
+    return user_code == request_code
