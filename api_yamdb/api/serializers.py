@@ -12,12 +12,11 @@ from reviews.validators import validate_username, validate_email
 User = get_user_model()
 
 
-class GetTokenSerializer(serializers.ModelSerializer):
+class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
 
     class Meta:
-        model = User
         fields = ('username', 'confirmation_code')
 
 
