@@ -37,13 +37,20 @@
     pip install -r requirements.txt
     ```
 
-4.  Выполните миграции:
+5.  Выполните миграции:
 
     ```bash
+    python api_yamdb/manage.py makemigrations reviews
     python api_yamdb/manage.py migrate
     ```
 
-5.  Запустите сервер:
+6.  Если нужно, импортируйте данные в БД:
+
+    ```bash
+    python api_yamdb/manage.py import_data
+    ```
+
+7.  Запустите сервер:
 
     ```bash
     python api_yamdb/manage.py runserver
@@ -132,3 +139,9 @@ Authorization: Bearer ваш_jwt_токен
 ```
 
 ## Полная документация доступна по [ссылке](http://127.0.0.1:8000/redoc/)
+
+## Авторы
+
+- [Андрей Мурашов](https://github.com/AndreyMurashov)
+- [Виталий Тамилин](https://github.com/XxSweeperxX)
+- [Никита Скрябин](https://github.com/vernette)

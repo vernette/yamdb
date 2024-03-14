@@ -1,29 +1,24 @@
-import random
-
-from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.db import IntegrityError
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-
-import api_yamdb.settings as settings
-
-from reviews.models import Category, Genre, Review, Title, User
-from .filters import TitleFilter
-from .permissions import (
-    AdminPermission, ModeratorPermission, UserPermission,
-    UserReadOnlyPermission
-)
-from .serializers import (
+from api.filters import TitleFilter
+from api.mixins import ReviewCommentMixin, GenreCategoryMixin
+from api.permissions import AdminPermission, AdminOrReadOnlyPermission
+from api.serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     GetTokenSerializer, ReviewSerializer, SignUpSerializer,
     TitleSerializer, UserSerializer
 )
+from api.utils import send_confirmation_code
+from reviews.models import Category, Genre, Review, Title, User
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -33,24 +28,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
-
-    @action(
-        methods=('GET', 'PATCH', 'DELETE'),
-        detail=False,
-        url_path=r'(?P<username>[\w.@+-]+)',
-    )
-    def username(self, request, username):
-        user = get_object_or_404(User, username=username)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'DELETE':
-            user.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     @action(
         methods=('GET', 'PATCH',),
@@ -69,7 +47,10 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             serializer.is_valid(raise_exception=True)
             serializer.save(role=instance.role)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
 
 
 class AuthViewSet(viewsets.ModelViewSet):
@@ -80,238 +61,102 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def signup(self, request):
-        user = User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        ).first()
-
-        if user:
-            serializer = SignUpSerializer(user, data=request.data)
-        else:
+        try:
             serializer = SignUpSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.validated_data['confirmation_code'] = \
-                self.get_new_confirmation_code()
-            user = serializer.save()
-            self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
+            user, created = User.objects.get_or_create(
+                **dict(serializer.validated_data)
+            )
+            send_confirmation_code(
+                user=user,
+                confirmation_code=default_token_generator.make_token(user)
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except (IntegrityError, serializers.ValidationError) as error:
+            return Response(
+                error.args[0],
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(methods=['POST'],
             detail=False,
             permission_classes=[AllowAny])
     def token(self, request):
-        serializer = GetTokenSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.data['username']
-            user = get_object_or_404(User, username=username)
-            conf_code = user.confirmation_code
-
-            if conf_code != serializer.data['confirmation_code']:
-                return Response(
-                    'Неверный код подтверждения!',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            else:
+        try:
+            serializer = GetTokenSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = get_object_or_404(
+                User,
+                username=serializer.validated_data['username']
+            )
+            if default_token_generator.check_token(
+                user=user,
+                token=serializer.validated_data['confirmation_code']
+            ):
                 token = AccessToken.for_user(user)
                 return Response(
                     {'token': str(token)},
                     status=status.HTTP_201_CREATED
                 )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @staticmethod
-    def send_confirmation_code(user):
-        subject = 'Код подтверждения'
-        message = (
-            f'Добрый день, {user.username}! \n'
-            f'Ваш код подтверждения '
-            f'для получения токена на YAMDB: \n'
-            f'{user.confirmation_code}'
-        )
-        user_email = user.email
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            [user_email])
-
-    @staticmethod
-    def get_new_confirmation_code():
-        code = ""
-        for i in range(6):
-            code += str(random.randint(0, 9))
-        return code
+            else:
+                return Response(
+                    {'error': 'Неверный код подтверждения'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except serializers.ValidationError as error:
+            return Response(
+                error.args[0],
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    permission_classes = [UserReadOnlyPermission | AdminPermission]
+    permission_classes = [AdminOrReadOnlyPermission]
     http_method_names = ['get', 'post', 'patch', 'delete']
     filterset_class = TitleFilter
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.annotate(rating=Avg('reviews__score'))
+        return queryset
 
-class CategoryViewSet(viewsets.ModelViewSet):
+
+class CategoryViewSet(GenreCategoryMixin):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [UserReadOnlyPermission | AdminPermission]
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'name'
-
-    def get_object(self):
-        queryset = self.filter_queryset(self.get_queryset())
-        slug = self.kwargs.get('slug')
-        obj = get_object_or_404(queryset, slug=slug)
-        self.check_object_permissions(self.request, obj)
-        return obj
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(GenreCategoryMixin):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [UserReadOnlyPermission | AdminPermission]
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'name'
-
-    def get_object(self):
-        queryset = self.filter_queryset(self.get_queryset())
-        slug = self.kwargs.get('slug')
-        obj = get_object_or_404(queryset, slug=slug)
-        self.check_object_permissions(self.request, obj)
-        return obj
 
 
-class ReviewViewSet(viewsets.ModelViewSet):
+class ReviewViewSet(ReviewCommentMixin):
     serializer_class = ReviewSerializer
-    pagination_class = LimitOffsetPagination
-    permission_classes = [
-        AdminPermission | UserPermission | ModeratorPermission]
-    http_method_names = ['get', 'post', 'patch', 'delete']
-
-    def get_title_id(self):
-        return self.kwargs.get('title_id')
 
     def get_title(self):
-        title_id = self.get_title_id()
-        return get_object_or_404(Title, pk=title_id)
+        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
 
     def get_queryset(self):
-        title = self.get_title()
-        return title.reviews.all()
-
-    def create(self, request, *args, **kwargs):
-        title = self.get_title()
-        user = self.request.user
-        if Review.objects.filter(title=title, author=user).exists():
-            return Response(
-                {'error': 'Вы уже оставили отзыв на это произведение.'},
-                status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        score = serializer.validated_data.get('score')
-        if int(score) > 10:
-            return Response(
-                {'error': 'Оценка не может быть выше 10 баллов.'},
-                status=status.HTTP_400_BAD_REQUEST)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED,
-            headers=headers)
+        return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
-        title = self.get_title()
-        serializer.save(author=self.request.user, title=title)
-
-    def update(self, request, *args, **kwargs):
-        review = self.get_object()
-        if (request.user.is_admin
-                or request.user.is_moderator
-                or review.author == request.user):
-            serializer = self.get_serializer(
-                review,
-                data=request.data,
-                partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        else:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-    def destroy(self, request, *args, **kwargs):
-        review = self.get_object()
-        if (request.user.is_admin
-                or request.user.is_moderator
-                or review.author == request.user):
-            review.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer.save(author=self.request.user, title=self.get_title())
 
 
-class CommentViewSet(viewsets.ModelViewSet):
+class CommentViewSet(ReviewCommentMixin):
     serializer_class = CommentSerializer
-    pagination_class = LimitOffsetPagination
-    http_method_names = ['get', 'post', 'patch', 'delete']
-    permission_classes = [
-        AdminPermission | ModeratorPermission | UserPermission
-    ]
-
-    def get_review_id(self):
-        return self.kwargs.get('review_id')
 
     def get_review(self):
-        review_id = self.get_review_id()
-        return get_object_or_404(Review, pk=review_id)
+        return get_object_or_404(Review, pk=self.kwargs.get('review_id'))
 
     def get_queryset(self):
-        review = self.get_review()
-        return review.comments.all()
+        return self.get_review().comments.select_related('author')
 
     def perform_create(self, serializer):
-        review = self.get_review()
-        user = self.request.user
-        serializer.save(author=user, review=review)
-
-    def update(self, request, pk=None, *args, **kwargs):
-        comment = self.get_object()
-        if comment.author == self.request.user:
-            return super().update(request=request, *args, **kwargs)
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    def destroy(self, request, *args, **kwargs):
-        comment = self.get_object()
-        if comment.author == self.request.user:
-            return super().destroy(request=request, *args, **kwargs)
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    def update(self, request, *args, **kwargs):
-        comment = self.get_object()
-        if (comment.author != request.user and not request.user.is_admin
-                and not request.user.is_moderator):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        serializer = self.get_serializer(
-            comment,
-            data=request.data,
-            partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
-    def destroy(self, request, *args, **kwargs):
-        comment = self.get_object()
-        if (request.user.is_admin
-                or request.user.is_moderator
-                or comment.author == request.user):
-            comment.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer.save(author=self.request.user, review=self.get_review())

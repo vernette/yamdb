@@ -33,11 +33,5 @@ router_v1.register(
 
 
 urlpatterns = [
-    path('v1/categories/<slug:slug>/', CategoryViewSet.as_view({
-        'delete': 'destroy'
-    }), name='category-detail'),
-    path('v1/genres/<slug:slug>/', GenreViewSet.as_view({
-        'delete': 'destroy'
-    }), name='genre-detail'),
     path('v1/', include(router_v1.urls)),
 ]

@@ -1,40 +1,55 @@
-import re
-
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 
+from reviews.constants import (
+    NAME_MAX_LENGTH_LIMIT,
+    EMAIL_MAX_LENGTH_LIMIT
+)
 from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.validators import validate_username, validate_email
 
 User = get_user_model()
 
 
-class GetTokenSerializer(serializers.ModelSerializer):
+class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
 
     class Meta:
-        model = User
         fields = ('username', 'confirmation_code')
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        max_length=NAME_MAX_LENGTH_LIMIT,
+        required=True
+    )
+    email = serializers.EmailField(
+        max_length=EMAIL_MAX_LENGTH_LIMIT,
+        required=True
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email')
 
+    def validate_username(self, value):
+        return validate_username(value)
+
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
-        validators=(UniqueValidator(queryset=User.objects.all()),)
+        validators=(UniqueValidator(
+            queryset=User.objects.all()),
+        )
     )
     email = serializers.EmailField(
         required=True,
-        validators=(UniqueValidator(queryset=User.objects.all()),)
+        validators=(UniqueValidator(
+            queryset=User.objects.all()),
+        )
     )
 
     class Meta:
@@ -50,33 +65,13 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_field = ('role',)
 
     def validate_username(self, value):
-        if value == 'me':
-            raise ValidationError(
-                'Имя пользователя "me" запрещено!'
-            )
-        elif re.search(r'^[\w.@+-]+\Z', value) is None:
-            raise ValidationError(
-                'Cимволы <{value}> - запрещены для использования в нике!'
-            )
-        elif len(value) > 150:
-            raise ValidationError(
-                'Имя пользователя не может быть длиннее 150 символов!'
-            )
-        else:
-            return value
+        return validate_username(value)
 
     def validate_email(self, value):
-        if len(value) > 150:
-            raise ValidationError(
-                'Адрес электронной почты '
-                'не может быть длиннее 150 символов!'
-            )
-        else:
-            return value
+        return validate_email(value)
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    rating = serializers.SerializerMethodField()
     category = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Category.objects.all()
@@ -84,24 +79,16 @@ class TitleSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Genre.objects.all(),
+        allow_empty=False,
         many=True
+    )
+    rating = serializers.IntegerField(
+        read_only=True
     )
 
     class Meta:
         model = Title
         fields = '__all__'
-
-    def get_rating(self, title):
-        reviews = Review.objects.filter(title=title)
-        average_rating = reviews.aggregate(Avg('score'))['score__avg']
-        return round(average_rating) if average_rating else None
-
-    def validate_name(self, value):
-        if len(value) > 256:
-            raise ValidationError(
-                'Название произведения не может быть длиннее 256 символов!'
-            )
-        return value
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -124,36 +111,12 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ('name', 'slug')
 
-    def create(self, validated_data):
-        slug = validated_data.get('slug')
-        if len(slug) > 50:
-            raise serializers.ValidationError(
-                'Длина slug не должна превышать 50 символов.'
-            )
-        if Category.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError(
-                'Категория с таким slug уже существует.'
-            )
-        return super().create(validated_data)
-
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
         fields = ('name', 'slug')
-
-    def create(self, validated_data):
-        slug = validated_data.get('slug')
-        if len(slug) > 50:
-            raise serializers.ValidationError(
-                'Длина slug не должна превышать 50 символов.'
-            )
-        if Genre.objects.filter(slug=slug).exists():
-            raise serializers.ValidationError(
-                'Жанр с таким slug уже существует.'
-            )
-        return super().create(validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -165,6 +128,18 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
+
+    def validate(self, data):
+        if self.context.get('request').method == 'POST':
+            if Review.objects.filter(
+                author=self.context['request'].user,
+                title_id=self.context['view'].kwargs.get('title_id')
+            ).exists():
+                raise serializers.ValidationError(
+                    'Вы не можете создать более одного отзыва '
+                    'на одно и то же произведение'
+                )
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
