@@ -155,10 +155,13 @@ class CommentViewSet(ReviewCommentMixin):
     serializer_class = CommentSerializer
 
     def get_review(self):
-        return get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        return get_object_or_404(Review, title_id=title_id, pk=review_id)
 
     def get_queryset(self):
         return self.get_review().comments.select_related('author')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, review=self.get_review())
+
