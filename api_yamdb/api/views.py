@@ -84,18 +84,12 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def token(self, request):
-        try:
-            serializer = GetTokenSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            return Response(
-                {'token': serializer.validated_data['token']},
-                status=status.HTTP_201_CREATED
-            )
-        except serializers.ValidationError as error:
-            return Response(
-                error.args[0],
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = GetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {'token': serializer.validated_data['token']},
+            status=status.HTTP_201_CREATED
+        )
 
 
 class TitleViewSet(viewsets.ModelViewSet):
