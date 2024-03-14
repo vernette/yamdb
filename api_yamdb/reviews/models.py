@@ -190,9 +190,9 @@ class Comment(AbstractUserContent):
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
-        related_name='comments'
     )
 
     class Meta(AbstractUserContent.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
