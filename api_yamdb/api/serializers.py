@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -6,8 +8,9 @@ from reviews.constants import (
     NAME_MAX_LENGTH_LIMIT,
     EMAIL_MAX_LENGTH_LIMIT
 )
-from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_username, validate_email
+
 
 User = get_user_model()
 
@@ -18,6 +21,25 @@ class GetTokenSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('username', 'confirmation_code')
+
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        user = get_object_or_404(
+            User,
+            username=validated_data.get('username')
+        )
+        if not default_token_generator.check_token(
+            user=user,
+            token=validated_data.get('confirmation_code')
+        ):
+            raise serializers.ValidationError(
+                {'confirmation_code': 'Неверный код подтверждения'}
+            )
+        else:
+            validated_data['token'] = (
+                default_token_generator.make_token(user)
+            )
+            return validated_data
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -62,7 +84,6 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
-        read_only_field = ('role',)
 
     def validate_username(self, value):
         return validate_username(value)

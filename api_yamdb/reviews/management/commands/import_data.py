@@ -19,10 +19,12 @@ class Command(BaseCommand):
         Comment: 'comments.csv'
     }
 
+    CSV_FILES_DIR = f'{settings.BASE_DIR}/static/data'
+
     def handle(self, *args, **options):
         for model, filename in self.csv_tables.items():
             with open(
-                f'{settings.BASE_DIR}/static/data/{filename}',
+                f'{self.CSV_FILES_DIR}/{filename}',
                 'r',
                 encoding='utf-8'
             ) as csv_file:
@@ -36,5 +38,5 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(
                     f'Обьекты <{model}> '
-                    f'успешно загружены в базу данных!'
+                    'успешно загружены в базу данных!'
                 )
