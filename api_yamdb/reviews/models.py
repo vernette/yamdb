@@ -62,7 +62,7 @@ class User(AbstractUser):
         ordering = ('username',)
 
 
-class AbstractBaseModel(models.Model):
+class BaseNamedSlugModel(models.Model):
     name = models.CharField(
         max_length=MODEL_NAME_LENGTH_LIMIT,
         verbose_name='Название'
@@ -80,16 +80,16 @@ class AbstractBaseModel(models.Model):
         return self.name
 
 
-class Category(AbstractBaseModel):
+class Category(BaseNamedSlugModel):
 
-    class Meta(AbstractBaseModel.Meta):
+    class Meta(BaseNamedSlugModel.Meta):
         verbose_name = 'категория (тип) произведения'
         verbose_name_plural = 'Категории (типы) произведений'
 
 
-class Genre(AbstractBaseModel):
+class Genre(BaseNamedSlugModel):
 
-    class Meta(AbstractBaseModel.Meta):
+    class Meta(BaseNamedSlugModel.Meta):
         verbose_name = 'жанр произведения'
         verbose_name_plural = 'Жанры произведений'
 
