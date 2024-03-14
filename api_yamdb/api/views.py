@@ -122,7 +122,9 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.annotate(rating=Avg('reviews__score'))
+        queryset = queryset.annotate(
+            rating=Avg('reviews__score')
+        ).order_by('-rating')
         return queryset
 
 
