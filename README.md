@@ -37,13 +37,20 @@
     pip install -r requirements.txt
     ```
 
-4.  Выполните миграции:
+5.  Выполните миграции:
 
     ```bash
+    python api_yamdb/manage.py makemigrations reviews
     python api_yamdb/manage.py migrate
     ```
 
-5.  Запустите сервер:
+6.  Если нужно, импортируйте данные в БД:
+
+    ```bash
+    python api_yamdb/manage.py import_data
+    ```
+
+7.  Запустите сервер:
 
     ```bash
     python api_yamdb/manage.py runserver
