@@ -2,14 +2,13 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
-from django.utils import timezone
 
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
     NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE,
     MODEL_NAME_LENGTH_LIMIT
 )
-from reviews.validators import validate_username
+from reviews.validators import validate_username, validate_current_year
 
 
 class User(AbstractUser):
@@ -106,10 +105,7 @@ class Title(models.Model):
                 MIN_YEAR_VALUE,
                 message=f'Год не может быть меньше {MIN_YEAR_VALUE}.'
             ),
-            MaxValueValidator(
-                timezone.now().year,
-                message='Год не может быть больше текущего.'
-            )
+            validate_current_year
         ]
     )
     description = models.TextField(verbose_name='Описание', null=True)
