@@ -1,6 +1,8 @@
 import re
 
+from django.utils import timezone
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
 
 from reviews.constants import NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT
 
@@ -25,3 +27,8 @@ def validate_email(value):
         )
     else:
         return value
+
+
+def validate_current_year(value):
+    if value > timezone.now().year:
+        raise ValidationError('Год не может быть больше текущего.')
