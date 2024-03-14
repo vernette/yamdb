@@ -104,7 +104,7 @@ class Title(models.Model):
         validators=[
             MinValueValidator(
                 MIN_YEAR_VALUE,
-                message='Год не может быть меньше 1.'
+                message=f'Год не может быть меньше {MIN_YEAR_VALUE}.'
             ),
             MaxValueValidator(
                 timezone.now().year,
@@ -169,11 +169,11 @@ class Review(AbstractUserContent):
         validators=[
             MinValueValidator(
                 MIN_RATING_VALUE,
-                message='Рейтинг не может быть меньше 0.'
+                message=f'Рейтинг не может быть меньше {MIN_RATING_VALUE}.'
             ),
             MaxValueValidator(
                 MAX_RATING_VALUE,
-                message='Рейтинг не может быть больше  10.'
+                message=f'Рейтинг не может быть больше  {MAX_RATING_VALUE}.'
             )
         ],
     )
