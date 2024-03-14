@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
 from api.mixins import ReviewCommentMixin, GenreCategoryMixin
@@ -64,7 +63,7 @@ class AuthViewSet(viewsets.ModelViewSet):
         try:
             serializer = SignUpSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            user, created = User.objects.get_or_create(
+            user, _ = User.objects.get_or_create(
                 **dict(serializer.validated_data)
             )
             send_confirmation_code(
@@ -88,24 +87,10 @@ class AuthViewSet(viewsets.ModelViewSet):
         try:
             serializer = GetTokenSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            user = get_object_or_404(
-                User,
-                username=serializer.validated_data['username']
+            return Response(
+                {'token': serializer.validated_data['token']},
+                status=status.HTTP_201_CREATED
             )
-            if default_token_generator.check_token(
-                user=user,
-                token=serializer.validated_data['confirmation_code']
-            ):
-                token = AccessToken.for_user(user)
-                return Response(
-                    {'token': str(token)},
-                    status=status.HTTP_201_CREATED
-                )
-            else:
-                return Response(
-                    {'error': 'Неверный код подтверждения'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
         except serializers.ValidationError as error:
             return Response(
                 error.args[0],

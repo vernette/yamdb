@@ -27,14 +27,12 @@ class User(AbstractUser):
         'имя пользователя',
         validators=(validate_username,),
         max_length=NAME_MAX_LENGTH_LIMIT,
-        unique=True,
-        null=False
+        unique=True
     )
     email = models.EmailField(
         'адрес электронной почты',
         max_length=EMAIL_MAX_LENGTH_LIMIT,
-        unique=True,
-        null=False
+        unique=True
     )
     bio = models.TextField(
         'биография',
