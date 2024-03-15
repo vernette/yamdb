@@ -8,7 +8,7 @@ from reviews.constants import (
     NAME_MAX_LENGTH_LIMIT,
     EMAIL_MAX_LENGTH_LIMIT
 )
-from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.validators import validate_username, validate_email
 
 
