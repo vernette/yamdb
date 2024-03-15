@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
 from api.mixins import ReviewCommentMixin, GenreCategoryMixin
@@ -64,7 +63,7 @@ class AuthViewSet(viewsets.ModelViewSet):
         try:
             serializer = SignUpSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            user, created = User.objects.get_or_create(
+            user, _ = User.objects.get_or_create(
                 **dict(serializer.validated_data)
             )
             send_confirmation_code(
@@ -85,32 +84,12 @@ class AuthViewSet(viewsets.ModelViewSet):
             detail=False,
             permission_classes=[AllowAny])
     def token(self, request):
-        try:
-            serializer = GetTokenSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = get_object_or_404(
-                User,
-                username=serializer.validated_data['username']
-            )
-            if default_token_generator.check_token(
-                user=user,
-                token=serializer.validated_data['confirmation_code']
-            ):
-                token = AccessToken.for_user(user)
-                return Response(
-                    {'token': str(token)},
-                    status=status.HTTP_201_CREATED
-                )
-            else:
-                return Response(
-                    {'error': 'Неверный код подтверждения'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        except serializers.ValidationError as error:
-            return Response(
-                error.args[0],
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = GetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {'token': serializer.validated_data['token']},
+            status=status.HTTP_201_CREATED
+        )
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -122,7 +101,9 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.annotate(rating=Avg('reviews__score'))
+        queryset = queryset.annotate(
+            rating=Avg('reviews__score')
+        ).order_by('-rating')
         return queryset
 
 
@@ -153,7 +134,9 @@ class CommentViewSet(ReviewCommentMixin):
     serializer_class = CommentSerializer
 
     def get_review(self):
-        return get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        return get_object_or_404(Review, title_id=title_id, pk=review_id)
 
     def get_queryset(self):
         return self.get_review().comments.select_related('author')

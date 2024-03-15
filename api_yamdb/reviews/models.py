@@ -2,14 +2,13 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
-from django.utils import timezone
 
 from reviews.constants import (
     TEXT_LENGTH_LIMIT, MIN_RATING_VALUE, MAX_RATING_VALUE,
     NAME_MAX_LENGTH_LIMIT, EMAIL_MAX_LENGTH_LIMIT, MIN_YEAR_VALUE,
     MODEL_NAME_LENGTH_LIMIT
 )
-from reviews.validators import validate_username
+from reviews.validators import validate_username, validate_current_year
 
 
 class User(AbstractUser):
@@ -27,14 +26,12 @@ class User(AbstractUser):
         'имя пользователя',
         validators=(validate_username,),
         max_length=NAME_MAX_LENGTH_LIMIT,
-        unique=True,
-        null=False
+        unique=True
     )
     email = models.EmailField(
         'адрес электронной почты',
         max_length=EMAIL_MAX_LENGTH_LIMIT,
-        unique=True,
-        null=False
+        unique=True
     )
     bio = models.TextField(
         'биография',
@@ -62,7 +59,7 @@ class User(AbstractUser):
         ordering = ('username',)
 
 
-class AbstractBaseModel(models.Model):
+class BaseNamedSlugModel(models.Model):
     name = models.CharField(
         max_length=MODEL_NAME_LENGTH_LIMIT,
         verbose_name='Название'
@@ -80,16 +77,16 @@ class AbstractBaseModel(models.Model):
         return self.name
 
 
-class Category(AbstractBaseModel):
+class Category(BaseNamedSlugModel):
 
-    class Meta(AbstractBaseModel.Meta):
+    class Meta(BaseNamedSlugModel.Meta):
         verbose_name = 'категория (тип) произведения'
         verbose_name_plural = 'Категории (типы) произведений'
 
 
-class Genre(AbstractBaseModel):
+class Genre(BaseNamedSlugModel):
 
-    class Meta(AbstractBaseModel.Meta):
+    class Meta(BaseNamedSlugModel.Meta):
         verbose_name = 'жанр произведения'
         verbose_name_plural = 'Жанры произведений'
 
@@ -104,12 +101,9 @@ class Title(models.Model):
         validators=[
             MinValueValidator(
                 MIN_YEAR_VALUE,
-                message='Год не может быть меньше 1.'
+                message=f'Год не может быть меньше {MIN_YEAR_VALUE}.'
             ),
-            MaxValueValidator(
-                timezone.now().year,
-                message='Год не может быть больше текущего.'
-            )
+            validate_current_year
         ]
     )
     description = models.TextField(verbose_name='Описание', null=True)
@@ -169,11 +163,11 @@ class Review(AbstractUserContent):
         validators=[
             MinValueValidator(
                 MIN_RATING_VALUE,
-                message='Рейтинг не может быть меньше 0.'
+                message=f'Рейтинг не может быть меньше {MIN_RATING_VALUE}.'
             ),
             MaxValueValidator(
                 MAX_RATING_VALUE,
-                message='Рейтинг не может быть больше  10.'
+                message=f'Рейтинг не может быть больше  {MAX_RATING_VALUE}.'
             )
         ],
     )
@@ -194,9 +188,9 @@ class Comment(AbstractUserContent):
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
-        related_name='comments'
     )
 
     class Meta(AbstractUserContent.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
