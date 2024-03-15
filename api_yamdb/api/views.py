@@ -143,4 +143,3 @@ class CommentViewSet(ReviewCommentMixin):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, review=self.get_review())
-
